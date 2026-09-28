@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comparador Avançado de Versões</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+body{background:#0d1117;color:#e6edf3;font-family:system-ui,sans-serif;}
+.card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px;margin-bottom:12px;}
+input,select,textarea{background:#161b22;border:1px solid #30363d;color:#e6edf3;border-radius:6px;padding:6px 10px;font-family:monospace;}
+.btn{padding:8px 16px;border-radius:6px;font-size:13px;font-weight:600;border:none;cursor:pointer;transition:.2s;}
+.btn:hover{opacity:0.9;transform:translateY(-1px);}
+.btn-blue{background:#1f6feb;color:#fff;}
+.btn-green{background:#238636;color:#fff;}
+.btn-red{background:#da3633;color:#fff;}
+.btn-gray{background:#21262d;color:#e6edf3;border:1px solid #30363d;}
+.drop{border:2px dashed #30363d;border-radius:8px;padding:24px;text-align:center;cursor:pointer;transition:.2s;}
+.drop:hover{border-color:#58a6ff;background:#0d1f40;}
+.added{background:#0d2e16;color:#3fb950;font-family:monospace;font-size:12px;white-space:pre-wrap;word-break:break-all;padding:4px 8px;margin:2px 0;}
+.removed{background:#3d1f1f;color:#f85149;font-family:monospace;font-size:12px;white-space:pre-wrap;word-break:break-all;padding:4px 8px;margin:2px 0;}
+.same{background:#161b22;color:#8b949e;font-family:monospace;font-size:12px;white-space:pre-wrap;word-break:break-all;padding:4px 8px;margin:2px 0;}
+.file-row{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;border-bottom:1px solid #21262d;cursor:pointer;font-size:12px;font-family:monospace;}
+.file-row:hover{background:#1c2128;}
+.badge{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;}
+.new{background:#0d2e16;color:#3fb950;}
+.del{background:#3d1f1f;color:#f85149;}
+.mod{background:#2d1f00;color:#d29922;}
+.same-b{background:#1c2128;color:#8b949e;}
+.version-card{background:#1c2128;border:1px solid #30363d;border-radius:6px;padding:12px;margin:8px 0;position:relative;}
+.version-card.active{border-color:#58a6ff;background:#0d1f40;}
+.tab-btn{padding:8px 12px;border:none;background:#21262d;color:#8b949e;cursor:pointer;border-radius:4px;margin-right:4px;font-size:12px;}
+.tab-btn.active{background:#1f6feb;color:#fff;}
+.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;}
+.modal.show{display:flex;}
+.modal-content{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:20px;max-width:600px;width:90%;max-height:80vh;overflow-y:auto;}
+.status-badge{display:inline-block;padding:2px 8px;border-radius:3px;font-size:11px;font-weight:600;}
+.status-ok{background:#0d2e16;color:#3fb950;}
+.status-warn{background:#2d1f00;color:#d29922;}
+.status-err{background:#3d1f1f;color:#f85149;}
+::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-thumb{background:#30363d;border-radius:2px;}
+.auto-save-indicator{position:fixed;bottom:20px;right:20px;padding:8px 12px;background:#238636;color:#fff;border-radius:4px;font-size:11px;opacity:0;transition:opacity 0.3s;}
+.auto-save-indicator.show{opacity:1;}
+</style>
+</head>
+<body class="p-4 min-h-screen">
+<div style="max-width:1200px;margin:0 auto;">
+
+<!-- HEADER -->
+<div style="text-align:center;padding:16px 0 20px;border-bottom:1px solid #30363d;margin-bottom:20px;">
+  <div style="font-size:28px;margin-bottom:6px;">🔍</div>
+  <h1 style="font-size:24px;font-weight:700;color:#58a6ff;">Comparador Avançado de Versões</h1>
+  <p style="color:#8b949e;font-size:13px;margin-top:4px;">Compare múltiplas versões, gere relatórios e acompanhe mudanças</p>
+  <div class="auto-save-indicator" id="auto-save-indicator">💾 Auto-salvando...</div>
+</div>
+
+<!-- TABS -->
+<div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:1px solid #30363d;padding-bottom:12px;">
+  <button class="tab-btn active" onclick="switchTab('compare')">📊 Comparar</button>
+  <button class="tab-btn" onclick="switchTab('versions')">📦 Versões</button>
+  <button class="tab-btn" onclick="switchTab('report')">📄 Relatório</button>
+  <button class="tab-btn" onclick="switchTab('settings')">⚙️ Configurações</button>
+</div>
+
+<!-- TAB: COMPARAR -->
+<div id="tab-compare" class="tab-content">
+
+<!-- Upload -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+  <div class="card">
+    <div style="font-size:12px;color:#8b949e;margin-bottom:8px;">📦 Versão A (mais antiga)</div>
+    <div class="drop" id="drop-a" onclick="document.getElementById('file-a').click()">
+      <div id="label-a" style="color:#8b949e;font-size:13px;">Clique ou arraste o ZIP</div>
+    </div>
+    <input type="file" id="file-a" accept=".zip" style="display:none" onchange="loadZip('a',this)">
+  </div>
+  <div class="card">
+    <div style="font-size:12px;color:#8b949e;margin-bottom:8px;">📦 Versão B (mais nova)</div>
+    <div class="drop" id="drop-b" onclick="document.getElementById('file-b').click()">
+      <div id="label-b" style="color:#8b949e;font-size:13px;">Clique ou arraste o ZIP</div>
+    </div>
+    <input type="file" id="file-b" accept=".zip" style="display:none" onchange="loadZip('b',this)">
+  </div>
+</div>
+
+<!-- Nomes das versões -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+  <div class="card">
+    <label style="font-size:12px;color:#8b949e;display:block;margin-bottom:6px;">Nome Versão A</label>
+    <input type="text" id="name-a" placeholder="Ex: v1.0.0" style="width:100%;box-sizing:border-box;">
+  </div>
+  <div class="card">
+    <label style="font-size:12px;color:#8b949e;display:block;margin-bottom:6px;">Nome Versão B</label>
+    <input type="text" id="name-b" placeholder="Ex: v1.1.0" style="width:100%;box-sizing:border-box;">
+  </div>
+</div>
+
+<!-- Filtro -->
+<div class="card" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+  <span style="font-size:12px;color:#8b949e;">Filtrar:</span>
+  <label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer;">
+    <input type="checkbox" id="show-mod" checked style="accent-color:#d29922;"> <span style="color:#d29922;">Modificados</span>
+  </label>
+  <label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer;">
+    <input type="checkbox" id="show-new" checked style="accent-color:#3fb950;"> <span style="color:#3fb950;">Novos</span>
+  </label>
+  <label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer;">
+    <input type="checkbox" id="show-del" checked style="accent-color:#f85149;"> <span style="color:#f85149;">Removidos</span>
+  </label>
+  <label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer;">
+    <input type="checkbox" id="show-same" style="accent-color:#8b949e;"> <span style="color:#8b949e;">Iguais</span>
+  </label>
+  <input type="text" id="filter-text" placeholder="🔍 buscar arquivo..." style="flex:1;min-width:140px;font-size:12px;height:28px;">
+  <button onclick="compareZips()" class="btn btn-blue" style="font-size:12px;">⚡ Comparar</button>
+</div>
+
+<!-- Resumo -->
+<div id="summary" style="display:none;" class="card">
+  <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px;">
+    <span>📊 Total: <b id="s-total">0</b> arquivos</span>
+    <span style="color:#d29922;">✏️ Modificados: <b id="s-mod">0</b></span>
+    <span style="color:#3fb950;">➕ Novos: <b id="s-new">0</b></span>
+    <span style="color:#f85149;">➖ Removidos: <b id="s-del">0</b></span>
+    <span style="color:#8b949e;">= Iguais: <b id="s-same">0</b></span>
+  </div>
+  <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+    <button onclick="generateReport()" class="btn btn-green" style="font-size:12px;">📄 Gerar Relatório</button>
+    <button onclick="exportComparison()" class="btn btn-blue" style="font-size:12px;">💾 Exportar JSON</button>
+    <button onclick="saveToVersions()" class="btn btn-blue" style="font-size:12px;">📌 Salvar Comparação</button>
+  </div>
+</div>
+
+<!-- Lista de arquivos -->
+<div id="file-list" class="card" style="display:none;">
+  <div id="files-container"></div>
+</div>
+
+<!-- Diff viewer -->
+<div id="diff-panel" style="display:none;" class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+    <div id="diff-title" style="font-size:13px;font-weight:700;font-family:monospace;color:#58a6ff;"></div>
+    <button onclick="document.getElementById('diff-panel').style.display='none'" class="btn btn-gray" style="font-size:11px;padding:4px 8px;">✕ Fechar</button>
+  </div>
+  <div id="diff-content" style="max-height:500px;overflow-y:auto;border-radius:6px;border:1px solid #30363d;"></div>
+</div>
+
+</div>
+
+<!-- TAB: VERSÕES -->
+<div id="tab-versions" class="tab-content" style="display:none;">
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+    <h2 style="font-size:16px;font-weight:700;">Comparações Salvas</h2>
+    <button onclick="clearAllVersions()" class="btn btn-red" style="font-size:12px;">🗑️ Limpar Tudo</button>
+  </div>
+  <div id="versions-list"></div>
+</div>
+</div>
+
+<!-- TAB: RELATÓRIO -->
+<div id="tab-report" class="tab-content" style="display:none;">
+<div class="card">
+  <h2 style="font-size:16px;font-weight:700;margin-bottom:16px;">Relatório Completo</h2>
+  <div id="report-content" style="color:#8b949e;text-align:center;padding:40px;">Nenhuma comparação realizada ainda</div>
+</div>
+</div>
+
+<!-- TAB: CONFIGURAÇÕES -->
+<div id="tab-settings" class="tab-content" style="display:none;">
+<div class="card">
+  <h2 style="font-size:16px;font-weight:700;margin-bottom:16px;">⚙️ Configurações</h2>
+  
+  <div style="margin-bottom:16px;">
+    <label style="font-size:12px;color:#8b949e;display:block;margin-bottom:6px;">
+      <input type="checkbox" id="auto-save-enabled" checked style="accent-color:#58a6ff;"> Auto-salvar comparações
+    </label>
+    <label style="font-size:12px;color:#8b949e;display:block;margin-bottom:6px;">
+      <input type="checkbox" id="show-identical" style="accent-color:#58a6ff;"> Mostrar arquivos idênticos por padrão
+    </label>
+    <label style="font-size:12px;color:#8b949e;display:block;margin-bottom:6px;">
+      <input type="checkbox" id="ignore-whitespace" style="accent-color:#58a6ff;"> Ignorar espaços em branco
+    </label>
+  </div>
+
+  <div style="margin-bottom:16px;">
+    <label style="font-size:12px;color:#8b949e;display:block;margin-bottom:6px;">Intervalo Auto-save (segundos)</label>
+    <input type="number" id="auto-save-interval" value="30" min="5" max="300" style="width:100%;box-sizing:border-box;">
+  </div>
+
+  <div style="margin-bottom:16px;">
+    <label style="font-size:12px;color:#8b949e;display:block;margin-bottom:6px;">Extensões a Ignorar (separadas por vírgula)</label>
+    <textarea id="ignore-extensions" style="width:100%;height:80px;box-sizing:border-box;">node_modules,dist,build,.git</textarea>
+  </div>
+
+  <button onclick="saveSettings()" class="btn btn-green">💾 Salvar Configurações</button>
+</div>
+</div>
+
+<!-- MODAL: NOMEAÇÃO DE COMPARAÇÃO -->
+<div id="modal-name" class="modal">
+  <div class="modal-content">
+    <h2 style="font-size:16px;font-weight:700;margin-bottom:16px;">Nomear Comparação</h2>
+    <input type="text" id="comparison-name" placeholder="Ex: Comparação v1.0 vs v1.1" style="width:100%;box-sizing:border-box;margin-bottom:16px;">
+    <textarea id="comparison-notes" placeholder="Notas sobre esta comparação..." style="width:100%;height:100px;box-sizing:border-box;margin-bottom:16px;"></textarea>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button onclick="closeModal('modal-name')" class="btn btn-gray">Cancelar</button>
+      <button onclick="confirmSaveVersion()" class="btn btn-green">Salvar</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+</body>
+</html>
+<script>
+// ============ ESTADO GLOBAL ============
+let zipA = null, zipB = null;
+let filesA = {}, filesB = {};
+let results = [];
+let currentComparison = null;
+let autoSaveTimer = null;
+let versions = [];
+
+// ============ INICIALIZAÇÃO ============
+function init() {
+  loadSettings();
+  loadVersions();
+  setupDragDrop();
+  setupAutoSave();
+  setupEventListeners();
+}
+
+function setupEventListeners() {
+  ['show-mod','show-new','show-del','show-same'].forEach(id => {
+    document.getElementById(id).onchange = renderList;
+  });
+  document.getElementById('filter-text').oninput = renderList;
+}
+
+function setupAutoSave() {
+  const interval = parseInt(document.getElementById('auto-save-interval').value) * 1000;
+  if (autoSaveTimer) clearInterval(autoSaveTimer);
+  autoSaveTimer = setInterval(() => {
+    if (currentComparison && document.getElementById('auto-save-enabled').checked) {
+      saveCurrentState();
+    }
+  }, interval);
+}
+
+// ============ DRAG & DROP ============
+function setupDragDrop() {
+  ['a','b'].forEach(side => {
+    const drop = document.getElementById(`drop-${side}`);
+    drop.addEventListener('dragover', e => { e.preventDefault(); drop.style.borderColor = '#58a6ff'; });
+    drop.addEventListener('dragleave', () => { drop.style.borderColor = '#30363d'; });
+    drop.addEventListener('drop', e => {
+      e.preventDefault(); drop.style.borderColor = '#30363d';
+      if (e.dataTransfer.files[0]) loadZipFile(side, e.dataTransfer.files[0]);
+    });
+  });
+}
+
+// ============ CARREGAR ZIP ============
+async function loadZip(side, input) {
+  if (input.files[0]) loadZipFile(side, input.files[0]);
+}
+
+async function loadZipFile(side, file) {
+  const label = document.getElementById(`label-${side}`);
+  const drop = document.getElementById(`drop-${side}`);
+  label.textContent = '⏳ Lendo...';
+  try {
+    const zip = await JSZip.loadAsync(file);
+    const files = {};
+    const ignoreExts = document.getElementById('ignore-extensions').value.split(',').map(s => s.trim());
+    
+    for (const [name, entry] of Object.entries(zip.files)) {
+      if (entry.dir) continue;
+      
+      const skip = ignoreExts.some(s => name.includes(s));
+      if (skip) continue;
+      
+      const ext = name.split('.').pop()?.toLowerCase();
+      const textExts = ['ts','tsx','js','jsx','json','md','css','html','txt','env','yml','yaml','toml','sh','bat','py','cjs','mjs','svg'];
+      if (!textExts.includes(ext)) continue;
+      
+      try {
+        files[normalPath(name)] = await entry.async('text');
+      } catch {}
+    }
+    
+    if (side === 'a') { filesA = files; }
+    else { filesB = files; }
+    
+    const count = Object.keys(files).length;
+    label.textContent = `✅ ${file.name} (${count} arquivos)`;
+    drop.style.borderColor = '#3fb950';
+    label.style.color = '#3fb950';
+  } catch(e) {
+    label.textContent = '❌ Erro: ' + e.message;
+    label.style.color = '#f85149';
+  }
+}
+
+function normalPath(p) {
+  const parts = p.split('/');
+  return parts.length > 1 ? parts.slice(1).join('/') : p;
+}
+
+// ============ COMPARAÇÃO ============
+function compareZips() {
+  if (!Object.keys(filesA).length || !Object.keys(filesB).length) {
+    alert('Carregue os dois ZIPs primeiro!'); return;
+  }
+  
+  const allKeys = new Set([...Object.keys(filesA), ...Object.keys(filesB)]);
+  results = [];
+  let mod=0, newf=0, del=0, same=0;
+
+  for (const key of allKeys) {
+    const a = filesA[key];
+    const b = filesB[key];
+    let status;
+    
+    if (a === undefined) { status = 'new'; newf++; }
+    else if (b === undefined) { status = 'del'; del++; }
+    else if (a === b) { status = 'same'; same++; }
+    else { status = 'mod'; mod++; }
+    
+    results.push({ key, status, a, b });
+  }
+
+  results.sort((x, y) => {
+    const order = {mod:0, new:1, del:2, same:3};
+    return (order[x.status] - order[y.status]) || x.key.localeCompare(y.key);
+  });
+
+  currentComparison = {
+    nameA: document.getElementById('name-a').value || 'Versão A',
+    nameB: document.getElementById('name-b').value || 'Versão B',
+    timestamp: new Date().toISOString(),
+    stats: { total: allKeys.size, mod, new: newf, del, same },
+    results: results
+  };
+
+  document.getElementById('s-total').textContent = allKeys.size;
+  document.getElementById('s-mod').textContent = mod;
+  document.getElementById('s-new').textContent = newf;
+  document.getElementById('s-del').textContent = del;
+  document.getElementById('s-same').textContent = same;
+  document.getElementById('summary').style.display = 'block';
+
+  renderList();
+  
+  if (document.getElementById('auto-save-enabled').checked) {
+    saveCurrentState();
+  }
+}
+
+function renderList() {
+  const showMod = document.getElementById('show-mod').checked;
+  const showNew = document.getElementById('show-new').checked;
+  const showDel = document.getElementById('show-del').checked;
+  const showSame = document.getElementById('show-same').checked;
+  const filterText = document.getElementById('filter-text').value.toLowerCase();
+
+  const filtered = results.filter(r => {
+    if (!showMod && r.status === 'mod') return false;
+    if (!showNew && r.status === 'new') return false;
+    if (!showDel && r.status === 'del') return false;
+    if (!showSame && r.status === 'same') return false;
+    if (filterText && !r.key.toLowerCase().includes(filterText)) return false;
+    return true;
+  });
+
+  const badges = { 
+    mod:'<span class="badge mod">MODIFICADO</span>', 
+    new:'<span class="badge new">NOVO</span>', 
+    del:'<span class="badge del">REMOVIDO</span>', 
+    same:'<span class="badge same-b">IGUAL</span>' 
+  };
+
+  const container = document.getElementById('files-container');
+  container.innerHTML = filtered.map((r, i) => `
+    <div class="file-row" onclick="showDiff(${results.indexOf(r)})">
+      <span>${r.key}</span>
+      ${badges[r.status]}
+    </div>
+  `).join('') || '<div style="padding:20px;text-align:center;color:#8b949e;font-size:13px;">Nenhum arquivo com esses filtros</div>';
+
+  document.getElementById('file-list').style.display = 'block';
+}
+
+function showDiff(i) {
+  const r = results[i];
+  document.getElementById('diff-title').textContent = r.key;
+  document.getElementById('diff-panel').style.display = 'block';
+
+  const content = document.getElementById('diff-content');
+
+  if (r.status === 'new') {
+    content.innerHTML = `<div class="added" style="padding:10px;">+++ ARQUIVO NOVO +++\n\n${esc(r.b)}</div>`;
+  } else if (r.status === 'del') {
+    content.innerHTML = `<div class="removed" style="padding:10px;">--- ARQUIVO REMOVIDO ---\n\n${esc(r.a)}</div>`;
+  } else if (r.status === 'same') {
+    content.innerHTML = `<div class="same" style="padding:10px;">= Arquivos idênticos =\n\n${esc(r.a)}</div>`;
+  } else {
+    const linesA = (r.a || '').split('\n');
+    const linesB = (r.b || '').split('\n');
+    content.innerHTML = diffLines(linesA, linesB);
+  }
+
+  document.getElementById('diff-panel').scrollIntoView({ behavior: 'smooth' });
+}
+
+function diffLines(a, b) {
+  const maxA = a.length, maxB = b.length;
+  let html = '';
+  let i = 0, j = 0;
+
+  while (i < maxA || j < maxB) {
+    if (i >= maxA) {
+      html += `<div class="added">+ ${esc(b[j])}</div>`;
+      j++;
+    } else if (j >= maxB) {
+      html += `<div class="removed">- ${esc(a[i])}</div>`;
+      i++;
+    } else if (a[i] === b[j]) {
+      html += `<div class="same">  ${esc(a[i])}</div>`;
+      i++; j++;
+    } else {
+      let foundB = -1, foundA = -1;
+      for (let k = 1; k <= 5; k++) {
+        if (j+k < maxB && a[i] === b[j+k]) { foundB = k; break; }
+        if (i+k < maxA && b[j] === a[i+k]) { foundA = k; break; }
+      }
+      if (foundB !== -1 && (foundA === -1 || foundB <= foundA)) {
+        for (let k = 0; k < foundB; k++) {
+          html += `<div class="added">+ ${esc(b[j+k])}</div>`;
+        }
+        j += foundB;
+      } else if (foundA !== -1) {
+        for (let k = 0; k < foundA; k++) {
+          html += `<div class="removed">- ${esc(a[i+k])}</div>`;
+        }
+        i += foundA;
+      } else {
+        html += `<div class="removed">- ${esc(a[i])}</div>`;
+        html += `<div class="added">+ ${esc(b[j])}</div>`;
+        i++; j++;
+      }
+    }
+  }
+  return html || '<div class="same" style="padding:10px;">Sem diferenças visíveis</div>';
+}
+
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ============ TABS ============
+function switchTab(tab) {
+  document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById(`tab-${tab}`).style.display = 'block';
+  event.target.classList.add('active');
+}
+
+// ============ SALVAMENTO ============
+function saveCurrentState() {
+  const indicator = document.getElementById('auto-save-indicator');
+  indicator.classList.add('show');
+  setTimeout(() => indicator.classList.remove('show'), 2000);
+  
+  const state = {
+    comparison: currentComparison,
+    timestamp: new Date().toISOString()
+  };
+  localStorage.setItem('lastComparison', JSON.stringify(state));
+}
+
+function saveToVersions() {
+  if (!currentComparison) {
+    alert('Faça uma comparação primeiro!');
+    return;
+  }
+  document.getElementById('modal-name').classList.add('show');
+}
+
+function confirmSaveVersion() {
+  const name = document.getElementById('comparison-name').value || `Comparação ${new Date().toLocaleDateString()}`;
+  const notes = document.getElementById('comparison-notes').value;
+  
+  const version = {
+    id: Date.now(),
+    name: name,
+    notes: notes,
+    timestamp: new Date().toISOString(),
+    data: currentComparison
+  };
+  
+  versions.push(version);
+  localStorage.setItem('versions', JSON.stringify(versions));
+  
+  closeModal('modal-name');
+  document.getElementById('comparison-name').value = '';
+  document.getElementById('comparison-notes').value = '';
+  
+  renderVersionsList();
+  alert('✅ Comparação salva com sucesso!');
+}
+
+function renderVersionsList() {
+  const container = document.getElementById('versions-list');
+  
+  if (versions.length === 0) {
+    container.innerHTML = '<div style="padding:20px;text-align:center;color:#8b949e;">Nenhuma comparação salva</div>';
+    return;
+  }
+  
+  container.innerHTML = versions.map((v, i) => `
+    <div class="version-card">
+      <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px;">
+        <div>
+          <div style="font-weight:700;color:#58a6ff;font-size:14px;">${esc(v.name)}</div>
+          <div style="font-size:11px;color:#8b949e;margin-top:4px;">
+            ${new Date(v.timestamp).toLocaleString('pt-BR')}
+          </div>
+        </div>
+        <div style="display:flex;gap:4px;">
+          <button onclick="loadVersion(${i})" class="btn btn-blue" style="font-size:11px;padding:4px 8px;">📂 Carregar</button>
+          <button onclick="deleteVersion(${i})" class="btn btn-red" style="font-size:11px;padding:4px 8px;">🗑️</button>
+        </div>
+      </div>
+      ${v.notes ? `<div style="font-size:12px;color:#8b949e;padding:8px;background:#0d1117;border-radius:4px;margin-top:8px;">${esc(v.notes)}</div>` : ''}
+      <div style="font-size:11px;color:#8b949e;margin-top:8px;">
+        📊 ${v.data.stats.total} arquivos | ✏️ ${v.data.stats.mod} mod | ➕ ${v.data.stats.new} novo | ➖ ${v.data.stats.del} rem
+      </div>
+    </div>
+  `).join('');
+}
+
+function loadVersion(i) {
+  const v = versions[i];
+  currentComparison = v.data;
+  results = v.data.results;
+  
+  document.getElementById('name-a').value = v.data.nameA;
+  document.getElementById('name-b').value = v.data.nameB;
+  document.getElementById('s-total').textContent = v.data.stats.total;
+  document.getElementById('s-mod').textContent = v.data.stats.mod;
+  document.getElementById('s-new').textContent = v.data.stats.new;
+  document.getElementById('s-del').textContent = v.data.stats.del;
+  document.getElementById('s-same').textContent = v.data.stats.same;
+  document.getElementById('summary').style.display = 'block';
+  
+  renderList();
+  switchTab('compare');
+  alert('✅ Comparação carregada!');
+}
+
+function deleteVersion(i) {
+  if (confirm('Tem certeza que deseja deletar?')) {
+    versions.splice(i, 1);
+    localStorage.setItem('versions', JSON.stringify(versions));
+    renderVersionsList();
+  }
+}
+
+function clearAllVersions() {
+  if (confirm('Deletar TODAS as comparações salvas?')) {
+    versions = [];
+    localStorage.setItem('versions', JSON.stringify(versions));
+    renderVersionsList();
+  }
+}
+
+function loadVersions() {
+  const saved = localStorage.getItem('versions');
+  versions = saved ? JSON.parse(saved) : [];
+  renderVersionsList();
+}
+
+// ============ RELATÓRIO ============
+function generateReport() {
+  if (!currentComparison) {
+    alert('Faça uma comparação primeiro!');
+    return;
+  }
+  
+  const stats = currentComparison.stats;
+  const date = new Date(currentComparison.timestamp).toLocaleString('pt-BR');
+  
+  let html = `
+    <div style="font-family:monospace;white-space:pre-wrap;word-break:break-word;line-height:1.6;">
+═══════════════════════════════════════════════════════════════
+                    RELATÓRIO DE COMPARAÇÃO
+═══════════════════════════════════════════════════════════════
+
+📅 Data: ${date}
+📦 Versão A: ${esc(currentComparison.nameA)}
+📦 Versão B: ${esc(currentComparison.nameB)}
+
+───────────────────────────────────────────────────────────────
+                        RESUMO ESTATÍSTICO
+───────────────────────────────────────────────────────────────
+
+Total de Arquivos: ${stats.total}
+✏️  Modificados:   ${stats.mod}
+➕ Novos:         ${stats.new}
+➖ Removidos:     ${stats.del}
+= Iguais:        ${stats.same}
+
+───────────────────────────────────────────────────────────────
+                      ARQUIVOS MODIFICADOS
+───────────────────────────────────────────────────────────────
+  `;
+  
+  const modified = results.filter(r => r.status === 'mod');
+  if (modified.length === 0) {
+    html += 'Nenhum arquivo modificado\n';
+  } else {
+    modified.forEach(r => {
+      html += `\n📝 ${r.key}\n`;
+    });
+  }
+  
+  html += `
+───────────────────────────────────────────────────────────────
+                        ARQUIVOS NOVOS
+───────────────────────────────────────────────────────────────
+  `;
+  
+  const newFiles = results.filter(r => r.status === 'new');
+  if (newFiles.length === 0) {
+    html += 'Nenhum arquivo novo\n';
+  } else {
+    newFiles.forEach(r => {
+      html += `\n➕ ${r.key}\n`;
+    });
+  }
+  
+  html += `
+───────────────────────────────────────────────────────────────
+                      ARQUIVOS REMOVIDOS
+───────────────────────────────────────────────────────────────
+  `;
+  
+  const deleted = results.filter(r => r.status === 'del');
+  if (deleted.length === 0) {
+    html += 'Nenhum arquivo removido\n';
+  } else {
+    deleted.forEach(r => {
+      html += `\n➖ ${r.key}\n`;
+    });
+  }
+  
+  html += `
+═══════════════════════════════════════════════════════════════
+                        FIM DO RELATÓRIO
+═══════════════════════════════════════════════════════════════
+    </div>
+  `;
+  
+  document.getElementById('report-content').innerHTML = html;
+  switchTab('report');
+}
+
+function exportComparison() {
+  if (!currentComparison) {
+    alert('Faça uma comparação primeiro!');
+    return;
+  }
+  
+  const data = JSON.stringify(currentComparison, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `comparacao_${Date.now()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ============ CONFIGURAÇÕES ============
+function saveSettings() {
+  const settings = {
+    autoSave: document.getElementById('auto-save-enabled').checked,
+    showIdentical: document.getElementById('show-identical').checked,
+    ignoreWhitespace: document.getElementById('ignore-whitespace').checked,
+    autoSaveInterval: document.getElementById('auto-save-interval').value,
+    ignoreExtensions: document.getElementById('ignore-extensions').value
+  };
+  
+  localStorage.setItem('settings', JSON.stringify(settings));
+  setupAutoSave();
+  alert('✅ Configurações salvas!');
+}
+
+function loadSettings() {
+  const saved = localStorage.getItem('settings');
+  if (saved) {
+    const settings = JSON.parse(saved);
+    document.getElementById('auto-save-enabled').checked = settings.autoSave;
+    document.getElementById('show-identical').checked = settings.showIdentical;
+    document.getElementById('ignore-whitespace').checked = settings.ignoreWhitespace;
+    document.getElementById('auto-save-interval').value = settings.autoSaveInterval;
+    document.getElementById('ignore-extensions').value = settings.ignoreExtensions;
+  }
+}
+
+// ============ UTILITÁRIOS ============
+function closeModal(id) {
+  document.getElementById(id).classList.remove('show');
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.getElementById('modal-name').classList.remove('show');
+  }
+});
+
+// Inicializar ao carregar
+window.addEventListener('load', init);
+</script>

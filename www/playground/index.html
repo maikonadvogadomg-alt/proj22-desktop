@@ -1,0 +1,1586 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Playground Jurídico</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    :root {
+      --bg: #0b1120;
+      --panel: #111827;
+      --panel-2: #172033;
+      --editor: #020617;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --border: #334155;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --success: #059669;
+      --danger: #dc2626;
+    }
+
+    :root.light {
+      --bg: #f1f5f9;
+      --panel: #ffffff;
+      --panel-2: #e2e8f0;
+      --editor: #f8fafc;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #cbd5e1;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    }
+
+    button, input, select, textarea {
+      font: inherit;
+      color: inherit;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+      border-radius: 5px;
+      padding: 6px 10px;
+      background: transparent;
+      color: var(--text);
+      transition: all 0.2s;
+      font-size: 12px;
+      min-height: 30px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    button:hover {
+      background: var(--panel-2);
+    }
+
+    button.primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    button.primary:hover {
+      background: var(--primary-hover);
+    }
+
+    button.success {
+      background: var(--success);
+      color: white;
+    }
+
+    button.danger {
+      background: var(--danger);
+      color: white;
+    }
+
+    .app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      min-height: 48px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel);
+      flex-wrap: wrap;
+      overflow-x: auto;
+      flex-shrink: 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .brand-icon {
+      font-size: 18px;
+      color: #60a5fa;
+    }
+
+    .brand-name {
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    .project-title {
+      width: 140px;
+      padding: 6px 8px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--editor);
+      outline: none;
+      color: var(--text);
+      font-size: 12px;
+    }
+
+    .project-title:focus {
+      border-color: var(--primary);
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      flex-wrap: wrap;
+      flex: 1;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .status {
+      display: none;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      white-space: pre-wrap;
+      max-height: 60px;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+
+    .status.show {
+      display: block;
+    }
+
+    .status.success {
+      color: #a7f3d0;
+      background: #064e3b;
+    }
+
+    .status.error {
+      color: #fecaca;
+      background: #7f1d1d;
+    }
+
+    .status.info {
+      color: #bfdbfe;
+      background: #1e3a8a;
+    }
+
+    .main {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      width: 260px;
+      min-width: 220px;
+      padding: 10px;
+      border-right: 1px solid var(--border);
+      background: var(--panel);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .sidebar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .search {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--editor);
+      outline: none;
+      color: var(--text);
+      margin-bottom: 8px;
+      font-size: 12px;
+    }
+
+    .project-list {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .project-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 6px;
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--panel-2);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .project-item:hover {
+      border-color: var(--primary);
+      background: var(--editor);
+    }
+
+    .project-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .project-name {
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .project-meta {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .project-actions {
+      display: flex;
+      gap: 3px;
+    }
+
+    .small-btn {
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 3px;
+    }
+
+    .workarea {
+      display: flex;
+      flex: 1;
+      min-width: 0;
+      min-height: 0;
+    }
+
+    .editor-panel {
+      display: flex;
+      flex-direction: column;
+      width: 50%;
+      border-right: 1px solid var(--border);
+      min-width: 0;
+      min-height: 0;
+    }
+
+    .editor-panel.collapsed {
+      display: none;
+    }
+
+    .preview-panel {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-width: 0;
+      min-height: 0;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      min-height: 36px;
+      padding: 6px 9px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel);
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+
+    .editor-tabs {
+      display: flex;
+      gap: 4px;
+      padding: 6px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel);
+      overflow-x: auto;
+      flex-shrink: 0;
+    }
+
+    .tab-btn {
+      padding: 5px 8px;
+      font-size: 11px;
+      white-space: nowrap;
+      border: 1px solid transparent;
+    }
+
+    .tab-btn.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .editor-wrap {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+      background: var(--editor);
+    }
+
+    .line-numbers {
+      width: 40px;
+      padding: 8px 6px;
+      border-right: 1px solid var(--border);
+      color: var(--muted);
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      text-align: right;
+      user-select: none;
+      overflow: hidden;
+      background: var(--panel-2);
+      flex-shrink: 0;
+    }
+
+    .code-editor {
+      flex: 1;
+      width: 100%;
+      padding: 8px 10px;
+      border: 0;
+      outline: none;
+      resize: none;
+      color: var(--text);
+      background: var(--editor);
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      tab-size: 2;
+      overflow: auto;
+    }
+
+    .preview-frame {
+      flex: 1;
+      width: 100%;
+      border: 0;
+      background: white;
+    }
+
+    .empty {
+      padding: 20px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 15px;
+      background: rgb(0 0 0 / 70%);
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal {
+      width: min(500px, 100%);
+      max-height: 85vh;
+      overflow-y: auto;
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: 0 20px 60px rgb(0 0 0 / 35%);
+    }
+
+    .modal h2 {
+      margin: 0 0 12px;
+      font-size: 15px;
+    }
+
+    .modal h3 {
+      margin: 12px 0 8px;
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .form-row {
+      margin-bottom: 10px;
+    }
+
+    .form-row label {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .form-row input {
+      width: 100%;
+      padding: 7px 8px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--editor);
+      outline: none;
+      color: var(--text);
+      font-size: 12px;
+    }
+
+    .form-row input:focus {
+      border-color: var(--primary);
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 6px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    .config-status {
+      margin-top: 10px;
+      padding: 8px;
+      border-radius: 4px;
+      background: var(--editor);
+      font-size: 11px;
+      color: var(--muted);
+      white-space: pre-wrap;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+
+    .mobile-toggle {
+      display: none;
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        display: none;
+      }
+
+      .editor-panel {
+        width: 100%;
+      }
+
+      .project-title {
+        width: 100px;
+      }
+
+      .topbar {
+        min-height: 56px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      html, body {
+        overflow: auto;
+      }
+
+      .app {
+        min-height: 100vh;
+        height: auto;
+      }
+
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        flex-shrink: 0;
+      }
+
+      .main {
+        flex-direction: column;
+        min-height: calc(100vh - 120px);
+        height: auto;
+      }
+
+      .editor-panel,
+      .preview-panel {
+        width: 100%;
+        height: 50vh;
+        min-height: 50vh;
+      }
+
+      .editor-panel.mobile-hidden,
+      .preview-panel.mobile-hidden {
+        display: none;
+      }
+
+      .mobile-toggle {
+        display: inline-flex;
+      }
+
+      .hide-mobile {
+        display: none;
+      }
+
+      .workarea {
+        min-height: auto;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-icon">⚖</span>
+        <span class="brand-name">Playground</span>
+      </div>
+
+      <input id="projectTitle" class="project-title" value="Sem título" placeholder="Nome do projeto" />
+
+      <div class="toolbar">
+        <div class="btn-group">
+          <button id="mobileEditorBtn" class="mobile-toggle" title="Mostrar código">Código</button>
+          <button id="mobilePreviewBtn" class="mobile-toggle" title="Mostrar preview">Preview</button>
+        </div>
+
+        <div class="btn-group">
+          <button id="autoRunBtn" class="primary" title="Executar automaticamente">◉ Ao vivo</button>
+          <button id="runBtn" class="primary" title="Executar agora">▶ Executar</button>
+        </div>
+
+        <div class="btn-group">
+          <button id="importBtn" title="Importar arquivo">↑ Importar</button>
+          <button id="downloadBtn" title="Baixar código">↓ Baixar</button>
+          <button id="copyBtn" title="Copiar código">⧉ Copiar</button>
+          <button id="fullscreenBtn" title="Tela cheia">⛶</button>
+        </div>
+
+        <div class="btn-group">
+          <button id="saveLocalBtn" class="success" title="Salvar localmente">Salvar local</button>
+          <button id="saveCloudBtn" class="primary" title="Salvar no Supabase">Salvar Supabase</button>
+          <button id="openBtn" title="Abrir projeto">Abrir</button>
+        </div>
+
+        <div class="btn-group">
+          <button id="configBtn" title="Configurar Supabase">Banco</button>
+          <button id="themeBtn" title="Alternar tema">☾</button>
+          <button id="resetBtn" title="Restaurar padrão">↺</button>
+          <button id="clearBtn" title="Limpar editor">⌫</button>
+        </div>
+      </div>
+    </header>
+
+    <div id="status" class="status"></div>
+
+    <main class="main">
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <span>Projetos salvos</span>
+          <button id="refreshBtn" class="small-btn" title="Atualizar">↻</button>
+        </div>
+
+        <input id="searchInput" class="search" placeholder="Pesquisar..." />
+
+        <button id="importCsvBtn" style="width: 100%; margin-bottom: 8px; font-size: 11px;">
+          📥 Importar ZIP/CSV
+        </button>
+
+        <div id="projectList" class="project-list"></div>
+      </aside>
+
+      <section class="workarea">
+        <section id="editorPanel" class="editor-panel">
+          <div class="editor-tabs">
+            <button class="tab-btn active" data-tab="html">HTML</button>
+            <button class="tab-btn" data-tab="css">CSS</button>
+            <button class="tab-btn" data-tab="js">JS</button>
+            <button id="collapseBtn" class="small-btn" style="margin-left: auto;" title="Minimizar">‹</button>
+          </div>
+
+          <div class="editor-wrap">
+            <div id="lineNumbers" class="line-numbers">1</div>
+            <textarea id="codeEditor" class="code-editor" spellcheck="false"></textarea>
+          </div>
+        </section>
+
+        <section id="previewPanel" class="preview-panel">
+          <div class="panel-header">
+            <span>◉ Resultado</span>
+            <button id="expandEditorBtn" class="small-btn" style="display: none;" title="Mostrar editor">›</button>
+          </div>
+
+          <iframe
+            id="previewFrame"
+            class="preview-frame"
+            sandbox="allow-scripts allow-modals allow-forms allow-popups"
+            title="Preview"
+          ></iframe>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <input id="fileInput" type="file" hidden accept=".html,.css,.js,.txt,.zip" />
+  <input id="csvInput" type="file" hidden accept=".csv,text/csv" />
+
+  <!-- Modal Configuração -->
+  <div id="configModal" class="modal-backdrop">
+    <div class="modal">
+      <h2>Configuração Supabase</h2>
+
+      <h3>Project URL</h3>
+      <div class="form-row">
+        <input id="supabaseUrl" placeholder="https://seu-projeto.supabase.co" />
+      </div>
+
+      <h3>Chave Pública (anon)</h3>
+      <div class="form-row">
+        <input id="supabaseKey" type="password" placeholder="eyJ..." />
+      </div>
+
+      <div style="display: flex; gap: 6px; margin-bottom: 12px;">
+        <button id="testSupabaseBtn" class="primary">Testar conexão</button>
+        <button id="clearSupabaseBtn">Limpar</button>
+      </div>
+
+      <div id="configStatus" class="config-status">Nenhum teste realizado.</div>
+
+      <div class="modal-actions">
+        <button id="closeConfigBtn">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Abrir Projeto -->
+  <div id="openModal" class="modal-backdrop">
+    <div class="modal">
+      <h2>Abrir projeto</h2>
+
+      <input id="openSearchInput" class="search" placeholder="Pesquisar..." />
+
+      <div id="openProjectList" class="project-list"></div>
+
+      <div class="modal-actions">
+        <button id="closeOpenBtn">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    "use strict";
+
+    const STORAGE_KEY = "playground_state_v1";
+    const LOCAL_PROJECTS_KEY = "playground_local_projects_v1";
+    const CONFIG_KEY = "playground_config_v1";
+
+    const DEFAULT_HTML = `<div class="card">
+  <h1>Olá, Playground!</h1>
+  <p>Edite o HTML, CSS e JavaScript abaixo.</p>
+  <button id="btn">Clique aqui</button>
+</div>`;
+
+    const DEFAULT_CSS = `body {
+  margin: 0;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  font-family: Arial, sans-serif;
+  background: #eef2ff;
+}
+
+.card {
+  width: min(500px, 90%);
+  padding: 30px;
+  border-radius: 12px;
+  background: white;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  text-align: center;
+}
+
+h1 { color: #2563eb; }
+
+button {
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 6px;
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+}`;
+
+    const DEFAULT_JS = `document.getElementById("btn")?.addEventListener("click", () => {
+  alert("Funcionou!");
+});`;
+
+    const state = {
+      mode: "html",
+      tab: "html",
+      title: "Sem título",
+      html: DEFAULT_HTML,
+      css: DEFAULT_CSS,
+      js: DEFAULT_JS,
+      currentId: null,
+      autoRun: true,
+      editorCollapsed: false,
+      mobileView: "editor",
+      supabase: null,
+      localProjects: [],
+      cloudProjects: []
+    };
+
+    const $ = (id) => document.getElementById(id);
+
+    // ===== UTILITÁRIOS =====
+
+    function showStatus(type, message, timeout = 4000) {
+      const el = $("status");
+      el.className = "status show " + type;
+      el.textContent = message;
+
+      if (timeout) {
+        clearTimeout(showStatus.timer);
+        showStatus.timer = setTimeout(() => {
+          el.className = "status";
+        }, timeout);
+      }
+    }
+
+    function showConfigStatus(message, type = "") {
+      const el = $("configStatus");
+      el.textContent = message;
+      if (type === "success") el.style.color = "#86efac";
+      else if (type === "error") el.style.color = "#fca5a5";
+      else el.style.color = "inherit";
+    }
+
+    function safeJsonParse(value, fallback) {
+      try {
+        return JSON.parse(value);
+      } catch {
+        return fallback;
+      }
+    }
+
+    // ===== PERSISTÊNCIA =====
+
+    function loadState() {
+      const saved = safeJsonParse(localStorage.getItem(STORAGE_KEY), null);
+      if (saved) {
+        Object.assign(state, saved);
+      }
+
+      const config = safeJsonParse(localStorage.getItem(CONFIG_KEY), {});
+      $("supabaseUrl").value = config.url || "";
+      $("supabaseKey").value = config.key || "";
+
+      state.localProjects = safeJsonParse(
+        localStorage.getItem(LOCAL_PROJECTS_KEY),
+        []
+      );
+
+      renderAll();
+    }
+
+    function persistState() {
+      const copy = {
+        mode: state.mode,
+        tab: state.tab,
+        title: state.title,
+        html: state.html,
+        css: state.css,
+        js: state.js,
+        currentId: state.currentId,
+        autoRun: state.autoRun,
+        editorCollapsed: state.editorCollapsed,
+        mobileView: state.mobileView
+      };
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(copy));
+    }
+
+    // ===== EDITOR =====
+
+    function getCurrentCode() {
+      return state[state.tab] || "";
+    }
+
+    function setCurrentCode(value) {
+      state[state.tab] = value;
+      persistState();
+      updateEditor();
+      if (state.autoRun) {
+        schedulePreview();
+      }
+    }
+
+    function updateEditor() {
+      const value = getCurrentCode();
+      $("codeEditor").value = value;
+
+      const lines = Math.max(1, value.split("\n").length);
+      $("lineNumbers").textContent = Array.from(
+        { length: lines },
+        (_, i) => i + 1
+      ).join("\n");
+
+      $("projectTitle").value = state.title;
+    }
+
+    function setTab(tab) {
+      state.tab = tab;
+      persistState();
+      renderTabs();
+      updateEditor();
+    }
+
+    function renderTabs() {
+      document.querySelectorAll("[data-tab]").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.tab === state.tab);
+      });
+    }
+
+    // ===== PREVIEW =====
+
+    function buildDocument() {
+      if (state.html.toLowerCase().includes("<!doctype")) {
+        return state.html;
+      }
+
+      return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>${state.css}</style>
+</head>
+<body>
+  ${state.html}
+  <script>
+try {
+${state.js}
+} catch (error) {
+  document.body.insertAdjacentHTML("beforeend",
+    "<pre style='color:red;padding:12px;white-space:pre-wrap'>" +
+    error.stack +
+    "</pre>"
+  );
+}
+  <\/script>
+</body>
+</html>`;
+    }
+
+    let previewTimer = null;
+
+    function schedulePreview() {
+      clearTimeout(previewTimer);
+      previewTimer = setTimeout(updatePreview, 300);
+    }
+
+    function updatePreview() {
+      persistState();
+
+      const blob = new Blob([buildDocument()], { type: "text/html;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const oldUrl = $("previewFrame").dataset.objectUrl;
+
+      $("previewFrame").src = url;
+      $("previewFrame").dataset.objectUrl = url;
+
+      if (oldUrl) {
+        setTimeout(() => URL.revokeObjectURL(oldUrl), 1000);
+      }
+    }
+
+    // ===== PROJETOS LOCAIS =====
+
+    function getProjectRecord() {
+      return {
+        id: state.currentId || crypto.randomUUID(),
+        title: state.title.trim() || "Sem título",
+        html: state.html,
+        css: state.css,
+        js: state.js,
+        saved_at: new Date().toISOString()
+      };
+    }
+
+    function saveLocal() {
+      const record = getProjectRecord();
+      const idx = state.localProjects.findIndex((p) => p.id === state.currentId);
+
+      if (idx >= 0) {
+        state.localProjects[idx] = record;
+      } else {
+        state.currentId = record.id;
+        state.localProjects.unshift(record);
+      }
+
+      localStorage.setItem(LOCAL_PROJECTS_KEY, JSON.stringify(state.localProjects));
+      persistState();
+      renderProjects();
+      showStatus("success", "Projeto salvo localmente.");
+    }
+
+    function loadProject(project) {
+      state.currentId = project.id;
+      state.title = project.title || "Sem título";
+      state.html = project.html || "";
+      state.css = project.css || "";
+      state.js = project.js || "";
+      state.tab = "html";
+
+      persistState();
+      renderAll();
+      updatePreview();
+      closeOpenModal();
+      showStatus("success", "Projeto aberto: " + state.title);
+    }
+
+    async function deleteProject(project) {
+      if (!confirm('Excluir "' + project.title + '"?')) return;
+
+      if (project.source === "cloud" && state.supabase) {
+        const { error } = await state.supabase
+          .from("snippets")
+          .delete()
+          .eq("id", project.id);
+
+        if (error) {
+          showStatus("error", "Erro ao excluir: " + error.message);
+          return;
+        }
+
+        await loadCloudProjects();
+        showStatus("success", "Projeto excluído do Supabase.");
+        return;
+      }
+
+      state.localProjects = state.localProjects.filter((p) => p.id !== project.id);
+      localStorage.setItem(LOCAL_PROJECTS_KEY, JSON.stringify(state.localProjects));
+      renderProjects();
+      showStatus("success", "Projeto local excluído.");
+    }
+
+    function renameProject(project) {
+      const title = prompt("Novo nome:", project.title);
+      if (!title || !title.trim()) return;
+
+      if (project.source === "cloud" && state.supabase) {
+        state.supabase
+          .from("snippets")
+          .update({ title: title.trim() })
+          .eq("id", project.id)
+          .then(() => loadCloudProjects());
+        return;
+      }
+
+      const local = state.localProjects.find((p) => p.id === project.id);
+      if (local) {
+        local.title = title.trim();
+        localStorage.setItem(LOCAL_PROJECTS_KEY, JSON.stringify(state.localProjects));
+        renderProjects();
+      }
+    }
+
+    // ===== SUPABASE =====
+
+    function connectSupabase() {
+      const url = $("supabaseUrl").value.trim();
+      const key = $("supabaseKey").value.trim();
+
+      if (!url || !key) {
+        showConfigStatus("Informe URL e chave.", "error");
+        return false;
+      }
+
+      if (!window.supabase) {
+        showConfigStatus("Biblioteca Supabase não carregada.", "error");
+        return false;
+      }
+
+      state.supabase = window.supabase.createClient(url, key);
+      localStorage.setItem(CONFIG_KEY, JSON.stringify({ url, key }));
+
+      return true;
+    }
+
+    async function testSupabase() {
+      if (!connectSupabase()) return;
+
+      showConfigStatus("Testando tabela snippets...");
+
+      const { error } = await state.supabase
+        .from("snippets")
+        .select("id")
+        .limit(1);
+
+      if (error) {
+        showConfigStatus("Erro: " + error.message, "error");
+        showStatus("error", "Falha na conexão Supabase.");
+        return;
+      }
+
+      showConfigStatus("Supabase conectado com sucesso!", "success");
+      showStatus("success", "Conexão confirmada.");
+      await loadCloudProjects();
+    }
+
+    async function saveCloud() {
+      if (!state.supabase && !connectSupabase()) {
+        showStatus("error", "Configure Supabase antes de salvar.");
+        return;
+      }
+
+      const payload = {
+        title: state.title.trim() || "Sem título",
+        html: state.html,
+        css: state.css,
+        js: state.js
+      };
+
+      let result;
+
+      if (state.currentId && state.currentId.length > 20) {
+        result = await state.supabase
+          .from("snippets")
+          .update(payload)
+          .eq("id", state.currentId)
+          .select("id")
+          .single();
+      } else {
+        result = await state.supabase
+          .from("snippets")
+          .insert(payload)
+          .select("id")
+          .single();
+      }
+
+      if (result.error) {
+        showStatus("error", "Erro ao salvar: " + result.error.message);
+        return;
+      }
+
+      state.currentId = result.data.id;
+      persistState();
+      await loadCloudProjects();
+      showStatus("success", "Projeto salvo no Supabase.");
+    }
+
+    async function loadCloudProjects() {
+      if (!state.supabase) return;
+
+      const { data, error } = await state.supabase
+        .from("snippets")
+        .select("id,title,html,css,js")
+        .order("title", { ascending: true });
+
+      if (error) {
+        showStatus("error", "Erro ao carregar: " + error.message);
+        return;
+      }
+
+      state.cloudProjects = (data || []).map((p) => ({
+        ...p,
+        source: "cloud"
+      }));
+
+      renderProjects();
+    }
+
+    // ===== RENDERIZAÇÃO =====
+
+    function mergedProjects() {
+      const cloud = state.cloudProjects.map((p) => ({ ...p, source: "cloud" }));
+      const local = state.localProjects.map((p) => ({ ...p, source: "local" }));
+      return [...cloud, ...local];
+    }
+
+    function renderProjects() {
+      const term = $("searchInput").value.trim().toLowerCase();
+      const projects = mergedProjects().filter((p) =>
+        String(p.title || "").toLowerCase().includes(term)
+      );
+
+      $("projectList").innerHTML = "";
+
+      if (!projects.length) {
+        $("projectList").innerHTML = '<div class="empty">Nenhum projeto.</div>';
+        return;
+      }
+
+      projects.forEach((p, idx) => {
+        $("projectList").appendChild(createProjectElement(p, idx + 1));
+      });
+
+      renderOpenProjects();
+    }
+
+    function createProjectElement(project, number) {
+      const item = document.createElement("div");
+      item.className = "project-item";
+
+      const info = document.createElement("div");
+      info.className = "project-info";
+
+      const name = document.createElement("div");
+      name.className = "project-name";
+      name.textContent = "#" + number + " — " + (project.title || "Sem título");
+
+      const meta = document.createElement("div");
+      meta.className = "project-meta";
+      meta.textContent = (project.source === "cloud" ? "☁ Supabase" : "💾 Local");
+
+      info.append(name, meta);
+      info.addEventListener("click", () => loadProject(project));
+
+      const actions = document.createElement("div");
+      actions.className = "project-actions";
+
+      const rename = document.createElement("button");
+      rename.className = "small-btn";
+      rename.textContent = "✎";
+      rename.addEventListener("click", (e) => {
+        e.stopPropagation();
+        renameProject(project);
+      });
+
+      const del = document.createElement("button");
+      del.className = "small-btn";
+      del.textContent = "×";
+      del.addEventListener("click", (e) => {
+        e.stopPropagation();
+        deleteProject(project);
+      });
+
+      actions.append(rename, del);
+      item.append(info, actions);
+
+      return item;
+    }
+
+    function renderOpenProjects() {
+      const term = $("openSearchInput").value.trim().toLowerCase();
+      const container = $("openProjectList");
+      container.innerHTML = "";
+
+      const projects = mergedProjects().filter((p) =>
+        String(p.title || "").toLowerCase().includes(term)
+      );
+
+      if (!projects.length) {
+        container.innerHTML = '<div class="empty">Nenhum projeto.</div>';
+        return;
+      }
+
+      projects.forEach((p, idx) => {
+        container.appendChild(createProjectElement(p, idx + 1));
+      });
+    }
+
+    function renderLayout() {
+      $("editorPanel").classList.toggle("collapsed", state.editorCollapsed);
+      $("expandEditorBtn").style.display = state.editorCollapsed ? "inline-flex" : "none";
+      $("collapseBtn").style.display = state.editorCollapsed ? "none" : "inline-flex";
+
+      $("autoRunBtn").classList.toggle("primary", state.autoRun);
+      $("autoRunBtn").textContent = state.autoRun ? "◉ Ao vivo" : "○ Manual";
+
+      const isMobile = window.innerWidth <= 600;
+
+      if (isMobile) {
+        $("editorPanel").classList.toggle("mobile-hidden", state.mobileView !== "editor");
+        $("previewPanel").classList.toggle("mobile-hidden", state.mobileView !== "preview");
+      } else {
+        $("editorPanel").classList.remove("mobile-hidden");
+        $("previewPanel").classList.remove("mobile-hidden");
+      }
+    }
+
+    function renderAll() {
+      renderTabs();
+      updateEditor();
+      renderLayout();
+      renderProjects();
+    }
+
+    // ===== MODAIS =====
+
+    function openOpenModal() {
+      $("openModal").classList.add("open");
+      renderOpenProjects();
+    }
+
+    function closeOpenModal() {
+      $("openModal").classList.remove("open");
+    }
+
+    // ===== DOWNLOAD/IMPORT =====
+
+    function downloadFile(filename, content, type) {
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function downloadCurrent() {
+      const filename = (state.title.trim() || "playground")
+        .replace(/[^\wÀ-ÿ -]/g, "")
+        .replace(/\s+/g, "-") + ".html";
+
+      downloadFile(filename, buildDocument(), "text/html;charset=utf-8");
+      showStatus("success", "Arquivo baixado.");
+    }
+
+    async function copyCurrent() {
+      try {
+        await navigator.clipboard.writeText(buildDocument());
+        showStatus("success", "Código copiado para a área de transferência.");
+      } catch {
+        showStatus("error", "Não foi possível copiar.");
+      }
+    }
+
+    function openFullscreen() {
+      const blob = new Blob([buildDocument()], { type: "text/html;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const win = window.open(url, "_blank", "noopener,noreferrer");
+      
+      if (!win) {
+        showStatus("error", "Abra a janela popup manualmente.");
+      }
+
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    }
+
+    function importFile(file) {
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        const content = String(reader.result || "");
+        const ext = file.name.split(".").pop().toLowerCase();
+
+        state.title = file.name.replace(/\.[^.]+$/, "") || "Importado";
+
+        if (ext === "css") {
+          state.tab = "css";
+          state.css = content;
+        } else if (ext === "js") {
+          state.tab = "js";
+          state.js = content;
+        } else {
+          state.tab = "html";
+          state.html = content;
+        }
+
+        state.currentId = null;
+        persistState();
+        renderAll();
+        updatePreview();
+        showStatus("success", "Arquivo importado.");
+      };
+
+      reader.readAsText(file);
+    }
+
+    function resetCurrent() {
+      state.html = DEFAULT_HTML;
+      state.css = DEFAULT_CSS;
+      state.js = DEFAULT_JS;
+      state.title = "Sem título";
+      state.currentId = null;
+      state.tab = "html";
+
+      persistState();
+      renderAll();
+      updatePreview();
+      showStatus("success", "Conteúdo restaurado.");
+    }
+
+    function clearCurrent() {
+      state.html = "";
+      state.css = "";
+      state.js = "";
+
+      persistState();
+      renderAll();
+      updatePreview();
+      showStatus("info", "Editor limpo.");
+    }
+
+    // ===== CSV =====
+
+    function parseCsv(text) {
+      const rows = [];
+      let row = [];
+      let value = "";
+      let quoted = false;
+
+      text = text.replace(/^\uFEFF/, "");
+
+      for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        const next = text[i + 1];
+
+        if (char === '"' && quoted && next === '"') {
+          value += '"';
+          i++;
+        } else if (char === '"') {
+          quoted = !quoted;
+        } else if (char === "," && !quoted) {
+          row.push(value);
+          value = "";
+        } else if ((char === "\n" || char === "\r") && !quoted) {
+          if (char === "\r" && next === "\n") i++;
+          row.push(value);
+          if (row.some((item) => item.trim())) rows.push(row);
+          row = [];
+          value = "";
+        } else {
+          value += char;
+        }
+      }
+
+      if (value || row.length) {
+        row.push(value);
+        rows.push(row);
+      }
+
+      if (rows.length < 2) return [];
+
+      const headers = rows[0].map((h) => h.trim().toLowerCase());
+
+      return rows.slice(1).map((cols) => {
+        const result = {};
+        headers.forEach((h, i) => {
+          result[h] = cols[i] || "";
+        });
+        return result;
+      });
+    }
+
+    async function importCsvFile(file) {
+      const text = await file.text();
+      const rows = parseCsv(text);
+
+      if (!rows.length) {
+        showStatus("error", "CSV vazio ou inválido.");
+        return;
+      }
+
+      let imported = 0;
+
+      for (const row of rows) {
+        const project = {
+          id: crypto.randomUUID(),
+          title: row.title || "Importado",
+          html: row.html || "",
+          css: row.css || "",
+          js: row.js || "",
+          saved_at: new Date().toISOString()
+        };
+
+        state.localProjects.unshift(project);
+        imported++;
+      }
+
+      localStorage.setItem(LOCAL_PROJECTS_KEY, JSON.stringify(state.localProjects));
+      renderProjects();
+      showStatus("success", imported + " projeto(s) importado(s).");
+    }
+
+    // ===== TEMA =====
+
+    function toggleTheme() {
+      const isLight = document.documentElement.classList.toggle("light");
+      localStorage.setItem("playground_theme", isLight ? "light" : "dark");
+      $("themeBtn").textContent = isLight ? "☀" : "☾";
+    }
+
+    function applyTheme() {
+      const theme = localStorage.getItem("playground_theme") || "dark";
+      document.documentElement.classList.toggle("light", theme === "light");
+      $("themeBtn").textContent = theme === "light" ? "☀" : "☾";
+    }
+
+    // ===== EVENTOS =====
+
+    function bindEvents() {
+      // Abas
+      document.querySelectorAll("[data-tab]").forEach((btn) => {
+        btn.addEventListener("click", () => setTab(btn.dataset.tab));
+      });
+
+      // Título do projeto
+      $("projectTitle").addEventListener("input", (e) => {
+        state.title = e.target.value;
+        persistState();
+      });
+
+      // Editor
+      $("codeEditor").addEventListener("input", (e) => {
+        setCurrentCode(e.target.value);
+      });
+
+      // Botões principais
+      $("autoRunBtn").addEventListener("click", () => {
+        state.autoRun = !state.autoRun;
+        persistState();
+        renderLayout();
+        if (state.autoRun) updatePreview();
+      });
+
+      $("runBtn").addEventListener("click", updatePreview);
+      $("saveLocalBtn").addEventListener("click", saveLocal);
+      $("saveCloudBtn").addEventListener("click", saveCloud);
+      $("openBtn").addEventListener("click", openOpenModal);
+      $("closeOpenBtn").addEventListener("click", closeOpenModal);
+
+      $("copyBtn").addEventListener("click", copyCurrent);
+      $("downloadBtn").addEventListener("click", downloadCurrent);
+      $("fullscreenBtn").addEventListener("click", openFullscreen);
+      $("resetBtn").addEventListener("click", resetCurrent);
+      $("clearBtn").addEventListener("click", clearCurrent);
+      $("themeBtn").addEventListener("click", toggleTheme);
+
+      // Collapse editor
+      $("collapseBtn").addEventListener("click", () => {
+        state.editorCollapsed = true;
+        persistState();
+        renderLayout();
+      });
+
+      $("expandEditorBtn").addEventListener("click", () => {
+        state.editorCollapsed = false;
+        persistState();
+        renderLayout();
+      });
+
+      // Mobile
+      $("mobileEditorBtn").addEventListener("click", () => {
+        state.mobileView = "editor";
+        renderLayout();
+      });
+
+      $("mobilePreviewBtn").addEventListener("click", () => {
+        state.mobileView = "preview";
+        updatePreview();
+        renderLayout();
+      });
+
+      // Configuração
+      $("configBtn").addEventListener("click", () => {
+        $("configModal").classList.add("open");
+      });
+
+      $("closeConfigBtn").addEventListener("click", () => {
+        $("configModal").classList.remove("open");
+      });
+
+      $("testSupabaseBtn").addEventListener("click", testSupabase);
+
+      $("clearSupabaseBtn").addEventListener("click", () => {
+        $("supabaseUrl").value = "";
+        $("supabaseKey").value = "";
+        state.supabase = null;
+        localStorage.removeItem(CONFIG_KEY);
+        showConfigStatus("Configuração removida.");
+      });
+
+      // Importar arquivo
+      $("importBtn").addEventListener("click", () => $("fileInput").click());
+
+      $("fileInput").addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (file) importFile(file);
+        e.target.value = "";
+      });
+
+      // Importar CSV
+      $("importCsvBtn").addEventListener("click", () => $("csvInput").click());
+
+      $("csvInput").addEventListener("change", async (e) => {
+        const file = e.target.files[0];
+        if (file) await importCsvFile(file);
+        e.target.value = "";
+      });
+
+      // Pesquisa
+      $("searchInput").addEventListener("input", renderProjects);
+      $("openSearchInput").addEventListener("input", renderOpenProjects);
+
+      // Atualizar
+      $("refreshBtn").addEventListener("click", () => {
+        loadCloudProjects();
+        showStatus("info", "Projetos atualizados.");
+      });
+
+      // Resize
+      window.addEventListener("resize", renderLayout);
+    }
+
+    // ===== INICIALIZAÇÃO =====
+
+    async function startup() {
+      applyTheme();
+      bindEvents();
+      loadState();
+      updatePreview();
+
+      // Carregar config Supabase se existir
+      const config = safeJsonParse(localStorage.getItem(CONFIG_KEY), {});
+      if (config.url && config.key && window.supabase) {
+        state.supabase = window.supabase.createClient(config.url, config.key);
+        await loadCloudProjects();
+      }
+    }
+
+    // Iniciar quando DOM estiver pronto
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", startup);
+    } else {
+      startup();
+    }
+  </script>
+</body>
+</html>
+

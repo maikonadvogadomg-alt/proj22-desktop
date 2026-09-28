@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1f2937">
+  <meta name="description" content="Suite de ferramentas jurídicas com IA">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%231f2937' width='192' height='192'/><text x='50%' y='50%' font-size='100' fill='%2310b981' text-anchor='middle' dominant-baseline='middle' font-family='Arial'>⚖️</text></svg>">
+  <title>Suite Jurídica + IA</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #0f172a;
+      --bg2: #1e293b;
+      --border: #334155;
+      --accent: #10b981;
+      --accent2: #34d399;
+      --text: #f1f5f9;
+      --text2: #cbd5e1;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    header {
+      background: var(--bg2);
+      border-bottom: 2px solid var(--accent);
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--accent2);
+    }
+    .header-title span {
+      font-size: 28px;
+    }
+    .install-btn {
+      padding: 8px 16px;
+      background: var(--accent);
+      color: #000;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 12px;
+      transition: all 0.3s;
+      display: none;
+    }
+    .install-btn:hover {
+      background: var(--accent2);
+      transform: scale(1.05);
+    }
+    .install-btn.show {
+      display: block;
+    }
+    .tabs-container {
+      display: flex;
+      gap: 4px;
+      padding: 12px 16px;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+      scroll-behavior: smooth;
+    }
+    .tab-btn {
+      padding: 10px 16px;
+      background: transparent;
+      border: 2px solid transparent;
+      color: var(--text2);
+      cursor: pointer;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .tab-btn:hover {
+      background: var(--border);
+      color: var(--text);
+    }
+    .tab-btn.active {
+      background: var(--accent);
+      color: #000;
+      border-color: var(--accent);
+    }
+    .content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .page {
+      display: none;
+      flex: 1;
+      overflow: hidden;
+    }
+    .page.active {
+      display: flex;
+      flex-direction: column;
+    }
+    .page iframe {
+      flex: 1;
+      border: none;
+      width: 100%;
+      height: 100%;
+    }
+    .home-page {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      padding: 40px 20px;
+      text-align: center;
+    }
+    .home-icon {
+      font-size: 80px;
+      animation: float 3s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-20px); }
+    }
+    .home-title {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--accent2);
+    }
+    .home-desc {
+      font-size: 14px;
+      color: var(--text2);
+      max-width: 400px;
+    }
+    .apps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      width: 100%;
+      max-width: 600px;
+    }
+    .app-card {
+      padding: 16px;
+      background: var(--bg2);
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    .app-card:hover {
+      border-color: var(--accent);
+      background: rgba(16, 185, 129, 0.05);
+      transform: translateY(-4px);
+    }
+    .app-icon {
+      font-size: 32px;
+    }
+    .app-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .footer {
+      padding: 12px 16px;
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--text2);
+      text-align: center;
+    }
+    @media (max-width: 640px) {
+      .header-title {
+        font-size: 16px;
+      }
+      .home-title {
+        font-size: 24px;
+      }
+      .tabs-container {
+        padding: 8px 12px;
+      }
+      .tab-btn {
+        padding: 8px 12px;
+        font-size: 12px;
+      }
+    }
+  </style>
+
+  <!-- PWA: Gerado pelo PWA Builder -->
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#807b5c">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Novo App">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js')
+          .then(r => console.log('[PWA] Service Worker registrado!', r.scope))
+          .catch(e => console.error('[PWA] Erro:', e));
+      });
+    }
+  </script>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-title">
+    <span>⚖️</span>
+    <div>Suite Jurídica + IA</div>
+  </div>
+  <button class="install-btn" id="installBtn">📥 Instalar</button>
+</header>
+
+<!-- ABAS -->
+<div class="tabs-container">
+  <button class="tab-btn active" onclick="showPage('home')">🏠 Início</button>
+  <button class="tab-btn" onclick="showPage('chat')">💬 Chat</button>
+  <button class="tab-btn" onclick="showPage('playground')">🎮 Playground</button>
+  <button class="tab-btn" onclick="showPage('editor')">📝 Editor</button>
+  <button class="tab-btn" onclick="showPage('comparador')">⚖️ Comparador</button>
+  <button class="tab-btn" onclick="showPage('outros')">⚙️ Outros</button>
+    <button class="tab-btn" onclick="showPage('novo')">�️🧩 Comparador</button>
+</div>
+
+<!-- CONTEÚDO -->
+<div class="content">
+  <!-- HOME -->
+  <div class="page active" id="home-page">
+    <div class="home-page">
+      <div class="home-icon">⚖️</div>
+      <div class="home-title">Suite Jurídica + IA</div>
+      <div class="home-desc">Ferramentas inteligentes para análise, comparação e edição de documentos jurídicos</div>
+      <div class="apps-grid">
+        <div class="app-card" onclick="showPage('chat')">
+          <div class="app-icon">💬</div>
+          <div class="app-name">Chat IA</div>
+        </div>
+        <div class="app-card" onclick="showPage('playground')">
+          <div class="app-icon">🎮</div>
+          <div class="app-name">Playground</div>
+        </div>
+        <div class="app-card" onclick="showPage('editor')">
+          <div class="app-icon">📝</div>
+          <div class="app-name">Editor</div>
+        </div>
+        <div class="app-card" onclick="showPage('comparador')">
+          <div class="app-icon">⚖️</div>
+          <div class="app-name">Comparador</div>
+        </div>
+        <div class="app-card" onclick="showPage('outros')">
+          <div class="app-icon">⚙️</div>
+          <div class="app-name">Outros</div>
+        </div>
+     <div class="app-card" onclick="showPage('novo')">
+          <div class="app-icon">🧩</div>
+          <div class="app-name">Novo</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHAT -->
+  <div class="page" id="chat-page">
+    <iframe src="chat/index.html"></iframe>
+  </div>
+
+  <!-- PLAYGROUND -->
+  <div class="page" id="playground-page">
+    <iframe src="playground/index.html"></iframe>
+  </div>
+
+  <!-- EDITOR -->
+  <div class="page" id="editor-page">
+    <iframe src="editor/index.html"></iframe>
+  </div>
+
+  <!-- COMPARADOR -->
+  <div class="page" id="comparador-page">
+    <iframe src="comparador/index.html"></iframe>
+  </div>
+
+  <!-- OUTROS -->
+  <div class="page" id="outros-page">
+    <iframe src="outros/index.html"></iframe>
+  </div>
+  
+    <!-- NOVO -->
+  <div class="page" id="novo-page">
+    <iframe src="novo/index.html"></iframe>
+  </div>
+
+</div>
+
+<!-- FOOTER -->
+<footer class="footer">
+  v1.0.0 • Suite Jurídica © 2024 • Offline Ready PWA
+</footer>
+
+<script>
+  'use strict';
+
+  let deferredPrompt;
+
+  // Registrar Service Worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(err => {
+      console.log('SW registration failed:', err);
+    });
+  }
+
+  // Evento de instalação
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    document.getElementById('installBtn').classList.add('show');
+  });
+
+  // Botão instalar
+  document.getElementById('installBtn').addEventListener('click', async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log(`User response to the install prompt: ${outcome}`);
+      deferredPrompt = null;
+      document.getElementById('installBtn').classList.remove('show');
+    }
+  });
+
+  // Navegar entre páginas
+  function showPage(pageName) {
+    // Ocultar todas as páginas
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+
+    // Mostrar página selecionada
+    const pageId = pageName === 'home' ? 'home-page' : `${pageName}-page`;
+    const page = document.getElementById(pageId);
+    if (page) {
+      page.classList.add('active');
+    }
+
+    // Ativar botão
+    event?.target?.classList.add('active');
+  }
+
+  // App installed
+  window.addEventListener('appinstalled', () => {
+    console.log('PWA foi instalada!');
+    document.getElementById('installBtn').classList.remove('show');
+  });
+</script>
+</body>
+</html>
